@@ -10,12 +10,27 @@ public class PlayerController : MonoBehaviour
     public float speed;
     private int count;
     private int numPickUps = 4;
+    public Vector3 lastPosition;
+    public Vector3 currentPosition;
     public Text scoreText;
     public Text winText;
+    public Text positionText;
+    public Text velocityText;
+    public Text speedText;
+    private GameObject nearestPickUp;
+    public Text distanceToNearestPickup;
+    private LineRenderer lineRenderer;
+    enum DebugModes {Normal, Distance, Vision};
+    DebugModes currentMode;
 
     void Start() {
         count = 0;
+        currentPosition = transform.position;
         winText.text = "";
+        currentMode = DebugModes.Normal;
+        lineRenderer = gameObject.AddComponent<LineRenderer>();
+        lineRenderer.startWidth = 0.0f;
+        lineRenderer.endWidth = 0.0f;
         SetCountText();
     }
 
@@ -23,10 +38,42 @@ public class PlayerController : MonoBehaviour
         moveValue = value.Get<Vector2>();
     }
 
+    void Update() {
+        if (Input.GetKeyDown(KeyCode.Space)) {
+            switch (currentMode) {
+                case DebugModes.Normal:
+                    currentMode = DebugModes.Distance;
+                    break;
+                case DebugModes.Distance:
+                    currentMode = DebugModes.Vision;
+                    break;
+                case DebugModes.Vision:
+                    currentMode = DebugModes.Normal;
+                    positionText.text = "";
+                    velocityText.text = "";
+                    speedText.text = "";
+                    distanceToNearestPickup.text = "";
+                    nearestPickUp.GetComponent<Renderer>().material.color = Color.white;
+                    lineRenderer.startWidth = 0.0f;
+                    lineRenderer.endWidth = 0.0f;
+                    break;
+            }
+            if (currentMode == DebugModes.Distance)
+            {
+                SetPositionVelocitySpeedText();
+                FindNearestPickUp();
+            }
+        }
+    }
+
     void FixedUpdate() {
         Vector3 movement = new Vector3(moveValue.x, 0.0f, moveValue.y);
-
         GetComponent<Rigidbody>().AddForce(movement * speed * Time.fixedDeltaTime);
+        if (currentMode == DebugModes.Distance)
+        {
+            SetPositionVelocitySpeedText();
+            FindNearestPickUp();
+        }
     }
 
     void OnTriggerEnter(Collider other) {
@@ -42,5 +89,40 @@ public class PlayerController : MonoBehaviour
         if (count >= numPickUps) {
             winText.text = "You Win!";
         }
+    }
+
+    private void SetPositionVelocitySpeedText() {
+        lastPosition = currentPosition;
+        currentPosition = transform.position;
+        positionText.text = "Position: " + currentPosition.ToString();
+        Vector3 velocity = (currentPosition - lastPosition) / Time.deltaTime;
+        velocityText.text = "Velocity: " + velocity.ToString();
+        speedText.text = "Speed: " + (velocity.magnitude).ToString();
+        //velocityText.text = "Velocity: " + ((GetComponent<Rigidbody>()).velocity.magnitude).ToString();
+    }
+
+    private void FindNearestPickUp() {
+        GameObject[] pickUps = GameObject.FindGameObjectsWithTag("PickUp");
+        nearestPickUp = null;
+        float currentDistanceToNearestPickUp = Mathf.Infinity;
+        foreach (GameObject j in pickUps)
+        {
+            j.GetComponent<Renderer>().material.color = Color.white;
+        }
+        foreach (GameObject i in pickUps)
+        {
+            float calculatedDistance = Vector3.Distance(currentPosition, i.transform.position);
+            if ( calculatedDistance < currentDistanceToNearestPickUp)
+            {
+                currentDistanceToNearestPickUp = calculatedDistance;
+                nearestPickUp = i;
+            }
+        }
+        nearestPickUp.GetComponent<Renderer>().material.color = Color.blue;
+        distanceToNearestPickup.text = "Distance to nearest pick up: " + (currentDistanceToNearestPickUp).ToString();
+        lineRenderer.SetPosition(0, nearestPickUp.transform.position);
+        lineRenderer.SetPosition(1, currentPosition);
+        lineRenderer.startWidth = 0.1f;
+        lineRenderer.endWidth = 0.1f;
     }
 }
