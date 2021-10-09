@@ -9,9 +9,14 @@ public class PlayerController : MonoBehaviour
     public Vector2 moveValue;
     public float speed;
     private int count;
+    private int numPickUps = 4;
+    public Text scoreText;
+    public Text winText;
 
     void Start() {
         count = 0;
+        winText.text = "";
+        SetCountText();
     }
 
     void OnMove(InputValue value) {
@@ -25,11 +30,17 @@ public class PlayerController : MonoBehaviour
     }
 
     void OnTriggerEnter(Collider other) {
-            if (other.gameObject.tag == "PickUp") {
+        if (other.gameObject.tag == "PickUp") {
             other.gameObject.SetActive(false);
             count++;
-            print(count);
+            SetCountText();
         }
     }
 
+    private void SetCountText() {
+        scoreText.text = "Score: " + count.ToString();
+        if (count >= numPickUps) {
+            winText.text = "You Win!";
+        }
+    }
 }
