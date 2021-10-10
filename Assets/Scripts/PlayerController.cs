@@ -43,9 +43,14 @@ public class PlayerController : MonoBehaviour
             switch (currentMode) {
                 case DebugModes.Normal:
                     currentMode = DebugModes.Distance;
+                    SetPositionVelocitySpeedText();
+                    FindNearestPickUp();
                     break;
                 case DebugModes.Distance:
                     currentMode = DebugModes.Vision;
+                    nearestPickUp.GetComponent<Renderer>().material.color = Color.white;
+                    SetPositionVelocitySpeedText();
+                    DrawVelocityPointer();
                     break;
                 case DebugModes.Vision:
                     currentMode = DebugModes.Normal;
@@ -58,11 +63,6 @@ public class PlayerController : MonoBehaviour
                     lineRenderer.endWidth = 0.0f;
                     break;
             }
-            if (currentMode == DebugModes.Distance)
-            {
-                SetPositionVelocitySpeedText();
-                FindNearestPickUp();
-            }
         }
     }
 
@@ -73,6 +73,10 @@ public class PlayerController : MonoBehaviour
         {
             SetPositionVelocitySpeedText();
             FindNearestPickUp();
+        }
+        if (currentMode == DebugModes.Vision) {
+            SetPositionVelocitySpeedText();
+            DrawVelocityPointer();
         }
     }
 
@@ -124,5 +128,31 @@ public class PlayerController : MonoBehaviour
         lineRenderer.SetPosition(1, currentPosition);
         lineRenderer.startWidth = 0.1f;
         lineRenderer.endWidth = 0.1f;
+    }
+
+    private void DrawVelocityPointer() {
+        Vector3 playerVelocity = (currentPosition - lastPosition) / Time.deltaTime;
+        lineRenderer.SetPosition(0, currentPosition);
+        lineRenderer.SetPosition(1, playerVelocity + currentPosition);
+        lineRenderer.startWidth = 0.1f;
+        lineRenderer.endWidth = 0.1f;
+        GameObject[] pickUps = GameObject.FindGameObjectsWithTag("PickUp");
+        GameObject atDirectApproach = null;
+        float currentDistanceToObjectAtDirectApproach = Mathf.Infinity;
+        foreach (GameObject j in pickUps)
+        {
+            j.GetComponent<Renderer>().material.color = Color.white;
+        }
+        foreach (GameObject i in pickUps)
+        {
+            float calculatedDistance = Vector3.Distance((playerVelocity + currentPosition), i.transform.position);
+            if (calculatedDistance < currentDistanceToObjectAtDirectApproach)
+            {
+                currentDistanceToObjectAtDirectApproach = calculatedDistance;
+                atDirectApproach = i;
+            }
+        }
+        atDirectApproach.GetComponent<Renderer>().material.color = Color.green;
+        atDirectApproach.transform.LookAt(this.transform);
     }
 }
